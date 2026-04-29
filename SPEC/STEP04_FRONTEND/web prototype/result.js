@@ -11,6 +11,12 @@ const PROFILE_LABELS = {
     marathon: '21km+ 마라톤',
   },
   foot_width: { wide: '넓음', normal: '보통', narrow: '좁음' },
+  pronation: {
+    overpronation: '내전형',
+    neutral: '중립형',
+    supination: '외전형',
+    unknown: '발 타입 모름',
+  },
   budget: {
     low: '~7만원',
     mid: '7~12만원',
@@ -68,6 +74,7 @@ function renderProfileSummary(profile) {
   const el = document.getElementById('profile-summary');
   const dist = PROFILE_LABELS.running_distance[profile.running_distance] || '?';
   const width = PROFILE_LABELS.foot_width[profile.foot_width] || '?';
+  const pronation = PROFILE_LABELS.pronation[profile.pronation] || '';
   const budget = PROFILE_LABELS.budget[profile.budget] || '상관없음';
   const priorities = (profile.priorities || [])
     .map((p) => PROFILE_LABELS.priorities[p])
@@ -78,6 +85,7 @@ function renderProfileSummary(profile) {
     <div class="profile-tags">
       <span class="tag">🏃 ${dist}</span>
       <span class="tag">👣 발볼 ${width}</span>
+      ${pronation ? `<span class="tag tag-pronation">🦶 ${pronation}</span>` : ''}
       <span class="tag">☁️ 쿠션 ${profile.preferred_cushion}/5</span>
       <span class="tag">💰 ${budget}</span>
       ${priorities ? `<span class="tag">${priorities}</span>` : ''}
@@ -181,6 +189,7 @@ function renderCompareTable(a, b) {
     ['모델', a.goods_name, b.goods_name],
     ['매칭 점수', `${a.match_score}점`, `${b.match_score}점`],
     ['가격', `${parseInt(a.price).toLocaleString()}원`, `${parseInt(b.price).toLocaleString()}원`],
+    ['발 아치 타입', a.pronation || '-', b.pronation || '-'],
     ['발볼', a.width || '-', b.width || '-'],
     ['쿠션감', a.cushion ? `${a.cushion}/5` : '-', b.cushion ? `${b.cushion}/5` : '-'],
     ['무게감', a.weight ? `${a.weight}/5` : '-', b.weight ? `${b.weight}/5` : '-'],

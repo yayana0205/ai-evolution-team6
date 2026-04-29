@@ -4,6 +4,12 @@
  */
 
 const WIDTH_MAP = { wide: '넓음', normal: '보통', narrow: '좁음' };
+const PRONATION_MAP = {
+  overpronation: '내전형',
+  neutral: '중립형',
+  supination: '외전형',
+  unknown: '중립형', // 모름은 중립으로 처리 (안전한 기본값)
+};
 const DISTANCE_MAP = {
   short: '단거리',
   medium: '중거리',
@@ -21,45 +27,60 @@ const BUDGET_MAX = {
  * 사용자 프로필 + 신발 속성 → 매칭 점수 (0-100)
  *
  * 가중치:
- *   width    — 40점 (가장 중요)
- *   cushion  — 30점
- *   distance — 20점
- *   budget   — 10점
+ *   pronation — 35점 (부상 방지 핵심 — MANIFESTO Safety over Performance)
+ *   width     — 25점
+ *   cushion   — 25점
+ *   distance  — 10점
+ *   budget    —  5점
  */
 function calculateMatchScore(user, shoe) {
   let score = 0;
 
-  // ── 발볼 (40점) ──
-  // CEO Critical Fix #5: narrow foot + 넓음 신발에도 페널티 (대칭)
-  const userWidth = WIDTH_MAP[user.foot_width];
-  if (shoe.width === userWidth) {
-    score += 40;
-  } else if (shoe.width === '보통') {
-    score += 20;
-  } else if (user.foot_width === 'wide' && shoe.width === '좁음') {
-    score -= 20; // 발볼 넓은데 좁은 신발 → 페널티
-  } else if (user.foot_width === 'narrow' && shoe.width === '넓음') {
-    score -= 20; // 발볼 좁은데 넓은 신발 → 페널티 (대칭)
+  // ── 발 아치 타입(pronation) — 35점 ──
+  // 부상 방지를 위한 가장 중요한 매칭 요소
+  const userPronation = PRONATION_MAP[user.pronation] || '중립형';
+  if (user.pronation !== 'unknown' && shoe.pronation) {
+    if (shoe.pronation === userPronation) {
+      score += 35;
+    } else if (shoe.pronation === '중립형') {
+      score += 18; // 중립 신발은 어느 발 타입에도 무난
+    } else {
+      score -= 15; // 반대 타입 신발 착용 → 부상 위험 페널티
+    }
+  } else {
+    score += 18; // 모름이면 중립 기준으로 처리
   }
 
-  // ── 쿠션 (30점) ──
+  // ── 발볼 (25점) ──
+  const userWidth = WIDTH_MAP[user.foot_width];
+  if (shoe.width === userWidth) {
+    score += 25;
+  } else if (shoe.width === '보통') {
+    score += 12;
+  } else if (user.foot_width === 'wide' && shoe.width === '좁음') {
+    score -= 15;
+  } else if (user.foot_width === 'narrow' && shoe.width === '넓음') {
+    score -= 15;
+  }
+
+  // ── 쿠션 (25점) ──
   const userCushion = user.preferred_cushion ?? 3;
   const shoeCushion = shoe.cushion ?? 3;
   const cushionDiff = Math.abs(shoeCushion - userCushion);
-  score += Math.max(0, 30 - cushionDiff * 10);
+  score += Math.max(0, 25 - cushionDiff * 8);
 
-  // ── 거리 (20점) ──
+  // ── 거리 (10점) ──
   const userDist = DISTANCE_MAP[user.running_distance];
   if (shoe.distance === userDist) {
-    score += 20;
+    score += 10;
   } else if (shoe.distance === '전거리') {
-    score += 15;
+    score += 7;
   }
 
-  // ── 예산 (10점) ──
+  // ── 예산 (5점) ──
   const budgetCap = BUDGET_MAX[user.budget] ?? Infinity;
   const price = parseInt(shoe.price) || 0;
-  if (price <= budgetCap) score += 10;
+  if (price <= budgetCap) score += 5;
 
   return Math.max(0, Math.min(100, score));
 }
@@ -86,6 +107,16 @@ function priorityBonus(user, shoe) {
 function generateReason(user, shoe) {
   const reasons = [];
   const userWidth = WIDTH_MAP[user.foot_width];
+  const userPronation = PRONATION_MAP[user.pronation] || '중립형';
+
+  // pronation 매칭 이유 (가장 먼저 표시 — 부상 방지 핵심)
+  if (user.pronation && user.pronation !== 'unknown' && shoe.pronation) {
+    if (shoe.pronation === userPronation) {
+      reasons.push(`${userPronation} 전용 지지 구조`);
+    } else if (shoe.pronation === '중립형') {
+      reasons.push('중립형 범용 설계');
+    }
+  }
 
   if (shoe.width === userWidth) {
     reasons.push(`${userWidth} 발볼에 잘 맞음`);

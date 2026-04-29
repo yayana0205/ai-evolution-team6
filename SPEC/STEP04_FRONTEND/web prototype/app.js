@@ -75,6 +75,8 @@ function collectFormData() {
       document.querySelector('input[name="frequency"]:checked')?.value || 'casual',
     foot_width:
       document.querySelector('input[name="width"]:checked')?.value || null,
+    pronation:
+      document.querySelector('input[name="pronation"]:checked')?.value || null,
     preferred_cushion:
       parseInt(document.getElementById('cushion-slider').value) || 3,
     priorities: Array.from(
@@ -93,6 +95,7 @@ function validateForm(profile) {
   const errors = [];
   if (!profile.running_distance) errors.push("Q1 '달리는 거리'를 선택해 주세요.");
   if (!profile.foot_width) errors.push("Q3 '발볼 유형'을 선택해 주세요.");
+  if (!profile.pronation) errors.push("Q3.5 '발 아치 타입'을 선택해 주세요.");
   if (profile.priorities.length > 3)
     errors.push("Q5 '중요 요소'는 최대 3개까지 선택 가능합니다.");
   if (profile.free_text.length > 200)
