@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoleMate — 15초 러닝화 추천</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── 2-Input MVP 전용 스타일 ── */
+    .hero {
+      text-align: center;
+      padding: 40px 24px 24px;
+    }
+    .hero h2 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .hero p {
+      font-size: 15px;
+      color: var(--text-light);
+      margin-bottom: 6px;
+    }
+    .hero .badge-fast {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+
+    /* 스텝 인디케이터 */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+    .step-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.2s;
+    }
+    .step-dot.active { background: var(--primary); }
+    .step-dot.done   { background: var(--success); }
+
+    /* 스텝 카드 */
+    .step-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 28px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      display: none;
+    }
+    .step-card.active { display: block; }
+    .step-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .step-card .step-sub {
+      font-size: 13px;
+      color: var(--text-light);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* 성별 카드 */
+    .gender-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .gender-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 16px;
+      background: #f5f5f5;
+      border: 3px solid transparent;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .gender-btn .icon { font-size: 40px; margin-bottom: 8px; }
+    .gender-btn:hover { background: #ececec; }
+    .gender-btn.selected {
+      background: #fff3e0;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* 대회 카드 */
+    .race-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .race-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 12px;
+      background: #f5f5f5;
+      border: 3px solid transparent;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .race-btn .icon { font-size: 28px; margin-bottom: 6px; }
+    .race-btn .race-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+    .race-btn .race-desc { font-size: 11px; color: var(--text-light); }
+    .race-btn:hover { background: #ececec; }
+    .race-btn.selected {
+      background: #fff3e0;
+      border-color: var(--primary);
+    }
+    .race-btn.selected .race-desc { color: var(--primary-dark); }
+
+    /* 진행 버튼 */
+    .btn-next {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.15s;
+    }
+    .btn-next:disabled {
+      background: #bdbdbd;
+      cursor: not-allowed;
+    }
+    .btn-next:not(:disabled):hover { background: var(--primary-dark); }
+
+    /* 뒤로가기 */
+    .btn-back {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--text-light);
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* 비교 링크 */
+    .full-form-link {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--text-light);
+    }
+    .full-form-link a {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>🏃 SoleMate</h1>
+    <p class="tagline">데이터가 말하는 당신의 러닝화</p>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <span class="badge-fast">⚡ 15초 완성</span>
+      <h2>딱 2가지만 알려주세요</h2>
+      <p>7개 질문 대신, 핵심 2개로 최적 러닝화를 추천해 드려요</p>
+    </div>
+
+    <!-- 스텝 인디케이터 -->
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+    </div>
+
+    <!-- Step 1: 성별 -->
+    <div class="step-card active" id="step-1">
+      <h3>성별이 어떻게 되세요?</h3>
+      <p class="step-sub">발볼 너비 기본값 설정에 사용돼요</p>
+      <div class="gender-grid">
+        <div class="gender-btn" data-value="male" onclick="selectGender(this)">
+          <span class="icon">🧑</span>남성
+        </div>
+        <div class="gender-btn" data-value="female" onclick="selectGender(this)">
+          <span class="icon">👩</span>여성
+        </div>
+      </div>
+      <button class="btn-next" id="btn-step1" disabled onclick="goToStep2()">다음 →</button>
+    </div>
+
+    <!-- Step 2: 목표 대회/유형 -->
+    <div class="step-card" id="step-2">
+      <h3>어떤 러닝을 목표로 하세요?</h3>
+      <p class="step-sub">추천의 가장 중요한 기준이에요</p>
+      <div class="race-grid">
+        <div class="race-btn" data-value="casual" onclick="selectRace(this)">
+          <span class="icon">🚶</span>
+          <span class="race-name">건강 조깅</span>
+          <span class="race-desc">5km 이하 · 가볍게</span>
+        </div>
+        <div class="race-btn" data-value="training" onclick="selectRace(this)">
+          <span class="icon">🏃</span>
+          <span class="race-name">일반 훈련</span>
+          <span class="race-desc">5~21km · 꾸준히</span>
+        </div>
+        <div class="race-btn" data-value="half" onclick="selectRace(this)">
+          <span class="icon">🥈</span>
+          <span class="race-name">하프마라톤</span>
+          <span class="race-desc">21km 대회 준비</span>
+        </div>
+        <div class="race-btn" data-value="full" onclick="selectRace(this)">
+          <span class="icon">🏅</span>
+          <span class="race-name">풀마라톤</span>
+          <span class="race-desc">42km · 부상 방지 최우선</span>
+        </div>
+      </div>
+      <button class="btn-next" id="btn-step2" disabled onclick="submit()">추천 받기 →</button>
+      <button class="btn-back" onclick="goToStep1()">← 뒤로</button>
+    </div>
+
+    <p class="full-form-link">
+      발볼·쿠션 등 세부 조건도 입력하고 싶으신가요? <a href="index.html">상세 진단 →</a>
+    </p>
+  </main>
+
+  <!-- 로딩 오버레이 -->
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <p>AI가 최적의 러닝화를 분석 중이에요... 🔍</p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>KAIST 11조 — SoleMate</p>
+    <p class="disclaimer">※ 무신사 리뷰 데이터 기반 프로토타입</p>
+  </footer>
+
+  <script>
+    let selectedGender = null;
+    let selectedRace = null;
+
+    function selectGender(el) {
+      document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedGender = el.dataset.value;
+      document.getElementById('btn-step1').disabled = false;
+    }
+
+    function selectRace(el) {
+      document.querySelectorAll('.race-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedRace = el.dataset.value;
+      document.getElementById('btn-step2').disabled = false;
+    }
+
+    function goToStep2() {
+      document.getElementById('step-1').classList.remove('active');
+      document.getElementById('step-2').classList.add('active');
+      document.getElementById('dot-1').classList.replace('active', 'done');
+      document.getElementById('dot-2').classList.add('active');
+    }
+
+    function goToStep1() {
+      document.getElementById('step-2').classList.remove('active');
+      document.getElementById('step-1').classList.add('active');
+      document.getElementById('dot-2').classList.remove('active');
+      document.getElementById('dot-1').classList.replace('done', 'active');
+    }
+
+    function submit() {
+      // 대회 유형 → 추천 엔진 파라미터 변환
+      const raceMap = {
+        casual:   { distance: 'short',    cushion: 4, priorities: ['comfort'] },
+        training: { distance: 'medium',   cushion: 3, priorities: ['comfort', 'protection'] },
+        half:     { distance: 'long',     cushion: 3, priorities: ['protection', 'speed'] },
+        full:     { distance: 'marathon', cushion: 4, priorities: ['protection'] },
+      };
+      // 성별 → 기본 발볼 추정 (방어적 기본값)
+      const genderWidthMap = { male: 'normal', female: 'normal' };
+
+      const raceParams = raceMap[selectedRace];
+      const profile = {
+        gender: selectedGender,
+        running_distance: raceParams.distance,
+        foot_width: genderWidthMap[selectedGender],
+        pronation: 'unknown',        // 결과 화면에서 선택 보정
+        preferred_cushion: raceParams.cushion,
+        priorities: raceParams.priorities,
+        budget: null,
+        free_text: '',
+        mode: '2input',              // 2-input 모드 표시
+        race_type: selectedRace,
+      };
+
+      sessionStorage.setItem('user_profile', JSON.stringify(profile));
+      document.getElementById('loading-overlay').style.display = 'flex';
+      setTimeout(() => { window.location.href = 'result_2input.html'; }, 800);
+    }
+  </script>
+</body>
+</html>

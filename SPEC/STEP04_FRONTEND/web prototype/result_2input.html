@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoleMate — 추천 결과</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── 2-Input 결과 전용 스타일 ── */
+    .race-summary {
+      background: linear-gradient(135deg, var(--primary), #ff7043);
+      color: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .race-summary .race-icon { font-size: 36px; margin-bottom: 6px; }
+    .race-summary h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .race-summary p  { font-size: 13px; opacity: 0.9; }
+
+    /* 발 아치 보정 패널 */
+    .pronation-panel {
+      background: #fff8e1;
+      border: 2px solid #ffcc02;
+      border-radius: 14px;
+      padding: 18px 16px;
+      margin-bottom: 20px;
+    }
+    .pronation-panel h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pronation-panel p {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 14px;
+    }
+    .pronation-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .pronation-opt {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 4px;
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .pronation-opt .opt-icon { font-size: 20px; }
+    .pronation-opt:hover { border-color: #ffcc02; }
+    .pronation-opt.selected {
+      border-color: var(--primary);
+      background: #fff3e0;
+      color: var(--primary);
+    }
+    .pronation-apply {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .pronation-apply:disabled {
+      background: #bdbdbd;
+      cursor: not-allowed;
+    }
+
+    /* 결과 헤더 */
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .result-header h2 { font-size: 20px; }
+    .result-count {
+      font-size: 13px;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>🏃 SoleMate</h1>
+    <p class="tagline">AI가 추천한 당신의 러닝화</p>
+  </header>
+
+  <main class="container">
+    <!-- 러닝 목표 요약 -->
+    <div class="race-summary" id="race-summary"></div>
+
+    <!-- [선택] 발 아치 타입 보정 -->
+    <div class="pronation-panel">
+      <h3>🦶 발 아치 타입을 알고 계신가요? <small style="font-weight:normal;color:#888">(선택)</small></h3>
+      <p>선택하면 추천 결과가 더 정확해져요. 신발 밑창의 닳는 위치로 확인할 수 있어요.</p>
+      <div class="pronation-options">
+        <div class="pronation-opt" data-value="overpronation" onclick="selectPronation(this)">
+          <span class="opt-icon">🔴</span>내전형<span style="font-size:10px;color:#888">안쪽 닳음</span>
+        </div>
+        <div class="pronation-opt" data-value="neutral" onclick="selectPronation(this)">
+          <span class="opt-icon">🟢</span>중립형<span style="font-size:10px;color:#888">고르게 닳음</span>
+        </div>
+        <div class="pronation-opt" data-value="supination" onclick="selectPronation(this)">
+          <span class="opt-icon">🟠</span>외전형<span style="font-size:10px;color:#888">바깥 닳음</span>
+        </div>
+        <div class="pronation-opt" data-value="unknown" onclick="selectPronation(this)">
+          <span class="opt-icon">🤷</span>모름<span style="font-size:10px;color:#888">중립 적용</span>
+        </div>
+      </div>
+      <button class="pronation-apply" id="pronation-apply-btn" disabled onclick="applyPronation()">
+        이 조건으로 결과 업데이트
+      </button>
+    </div>
+
+    <!-- 추천 결과 -->
+    <div class="result-header">
+      <h2 id="result-title">🎯 추천 러닝화</h2>
+      <span class="result-count" id="result-count"></span>
+    </div>
+    <div id="results-container"></div>
+
+    <div class="actions">
+      <button onclick="location.href='index_2input.html'" class="btn-secondary">다시 진단하기</button>
+      <button onclick="location.href='index.html'" class="btn-secondary">상세 진단 →</button>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>KAIST 11조 — SoleMate</p>
+  </footer>
+
+  <script src="recommend.js"></script>
+  <script>
+    const RACE_LABEL = {
+      casual:   { icon: '🚶', name: '건강 조깅', desc: '5km 이하 · 편안함 우선' },
+      training: { icon: '🏃', name: '일반 훈련',  desc: '5~21km · 균형 잡힌 선택' },
+      half:     { icon: '🥈', name: '하프마라톤', desc: '21km · 부상 방지 + 속도감' },
+      full:     { icon: '🏅', name: '풀마라톤',   desc: '42km · 부상 방지 최우선' },
+    };
+
+    const PRONATION_MAP_RESULT = {
+      overpronation: '내전형',
+      neutral: '중립형',
+      supination: '외전형',
+      unknown: '중립형',
+    };
+
+    let currentProfile = null;
+    let selectedPronationValue = null;
+
+    async function init() {
+      const raw = sessionStorage.getItem('user_profile');
+      if (!raw) { location.href = 'index_2input.html'; return; }
+      currentProfile = JSON.parse(raw);
+
+      renderRaceSummary(currentProfile);
+
+      let products;
+      try {
+        const res = await fetch('product_profiles.json');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        products = await res.json();
+      } catch (err) {
+        renderError(`상품 데이터를 불러올 수 없어요. (${err.message})`);
+        return;
+      }
+
+      window._products = products;
+      renderResults(currentProfile, products);
+    }
+
+    function renderRaceSummary(profile) {
+      const race = RACE_LABEL[profile.race_type] || { icon: '🏃', name: '러닝', desc: '' };
+      const genderLabel = profile.gender === 'male' ? '남성' : '여성';
+      document.getElementById('race-summary').innerHTML = `
+        <div class="race-icon">${race.icon}</div>
+        <h2>${genderLabel} · ${race.name}</h2>
+        <p>${race.desc}</p>
+      `;
+    }
+
+    function selectPronation(el) {
+      document.querySelectorAll('.pronation-opt').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedPronationValue = el.dataset.value;
+      document.getElementById('pronation-apply-btn').disabled = false;
+    }
+
+    function applyPronation() {
+      currentProfile.pronation = selectedPronationValue;
+      sessionStorage.setItem('user_profile', JSON.stringify(currentProfile));
+      renderResults(currentProfile, window._products);
+    }
+
+    function renderResults(profile, products) {
+      const recs = getRecommendations(profile, products);
+      const good = recs.filter(r => r.match_score >= 20);
+      const container = document.getElementById('results-container');
+
+      document.getElementById('result-count').textContent =
+        profile.pronation && profile.pronation !== 'unknown'
+          ? `발 아치: ${PRONATION_MAP_RESULT[profile.pronation]} 적용됨`
+          : '';
+
+      if (good.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🤔</div>
+            <h2>딱 맞는 추천이 없어요</h2>
+            <p>상세 진단으로 조건을 조정해 보세요.</p>
+            <button onclick="location.href='index.html'" class="btn-primary">상세 진단하기</button>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = good.slice(0, 3).map((shoe, i) => `
+        <article class="rec-card rank-${i + 1}">
+          <div class="rec-rank">#${i + 1}</div>
+          <div class="rec-body">
+            <div class="rec-header">
+              <h3>${shoe.brand} <span class="rec-name">${shoe.goods_name}</span></h3>
+              <div class="rec-score">매칭 ${shoe.match_score}점</div>
+            </div>
+            <p class="rec-summary">${shoe.summary || ''}</p>
+            <div class="rec-tags">
+              ${shoe.width ? `<span class="feature-tag">발볼 ${shoe.width}</span>` : ''}
+              ${shoe.cushion ? `<span class="feature-tag">쿠션 ${shoe.cushion}/5</span>` : ''}
+              ${shoe.distance ? `<span class="feature-tag">${shoe.distance}</span>` : ''}
+              ${shoe.confidence === 'high'
+                ? '<span class="badge badge-high">신뢰도 높음</span>'
+                : '<span class="badge badge-medium">신뢰도 보통</span>'}
+            </div>
+            <p class="rec-reason">💡 ${shoe.reason}</p>
+            <div class="rec-footer">
+              <span class="rec-price">${parseInt(shoe.price).toLocaleString()}원</span>
+              <a href="${shoe.url}" target="_blank" class="btn-musinsa">무신사에서 보기 →</a>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function renderError(msg) {
+      document.getElementById('results-container').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">⚠️</div>
+          <h2>오류가 발생했어요</h2>
+          <p>${msg}</p>
+          <button onclick="location.reload()" class="btn-primary">다시 시도</button>
+        </div>`;
+    }
+
+    init();
+  </script>
+</body>
+</html>
