@@ -1,4 +1,4 @@
-\# \[SoleMate / RunFit] 프로젝트 선언문 (Manifesto)
+\# \[SoleMate / RunFit] 프로젝트 선언문 (Manifesto) -test
 
 
 
