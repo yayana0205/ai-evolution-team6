@@ -1,18 +1,39 @@
 # SPEC.md
-## SoleMate — 상세 기능 및 기술 명세서
+## RunFit — 상세 기능 및 기술 명세서
 
-이 문서는 SoleMate 서비스의 MVP(Minimum Viable Product) 구현을 위한 상세 개발 스펙을 정의합니다. 모든 코드 작성 및 시스템 설계는 이 문서를 기준으로 진행됩니다.
+이 문서는 RunFit 서비스의 MVP(Minimum Viable Product) 구현을 위한 상세 개발 스펙을 정의합니다. 모든 코드 작성 및 시스템 설계는 이 문서를 기준으로 진행됩니다.
 
 ---
 
 ### 1. 사용자 시나리오 (User Scenario)
 > **목적:** 사용자가 서비스에 진입하여 결과를 얻기까지의 핵심 흐름 정의 (이탈률 최소화 관점)
 
-1. **진입 및 온보딩:** 사용자가 모바일 웹에 접속하면, 서비스의 핵심 가치("데이터 기반 부상 방지 러닝화 추천")가 1줄로 노출된다.
-2. **Step 1. 신체 조건 입력:** 직관적인 UI(이미지/카드 선택형)를 통해 성별, 체중, 발볼, 아치 형태(내전/외전/중립)를 선택한다. (모를 경우 '잘 모름/중립' git add docs/SPEC.md선택 가능)
-3. **Step 2. 러닝 목표 입력:** 주간 러닝 거리, 목표 대회(예: 서울마라톤), 예산을 선택한다.
-4. **분석 대기 (Loading):** 입력 완료 버튼을 누르면 "수천 건의 리뷰 데이터를 분석하여 최적의 러닝화를 찾고 있습니다..."라는 문구와 함께 로딩 스피너가 표시된다.
-5. **결과 확인:** AI가 분석한 1, 2, 3순위 러닝화가 카드 형태로 노출된다. 각 카드에는 추천 이유(사용자 데이터 기반)와 주요 스펙, 예상 가격이 명시된다.
+1. **진입:** 사용자가 모바일 웹(`index.html`)에 접속하면 "3분 진단 — 7개 질문에 답하면 AI가 가장 적합한 러닝화를 추천합니다" 문구와 함께 단일 스크롤 폼이 표시된다.
+
+2. **7개 질문 입력 (단일 페이지 스크롤 방식):**
+
+   | 번호 | 질문 | 입력 방식 | 필수 여부 |
+   |------|------|-----------|-----------|
+   | Q1 | 주로 달리는 거리 | 라디오 (4개 옵션) | 필수 |
+   | Q2 | 러닝 빈도 | 라디오 (3개 옵션) | 선택 (기본값: 주 3~4회) |
+   | Q3 | 발볼 너비 | 라디오 (3개 옵션) | 필수 |
+   | Q4 | 선호 쿠션감 | 슬라이더 (1~5단계) | 선택 (기본값: 3) |
+   | Q5 | 중요 요소 | 체크박스 (최대 3개) | 선택 |
+   | Q6 | 예산 범위 | 라디오 (5개 옵션) | 선택 |
+   | Q7 | 추가 자유 서술 | 텍스트에어리어 (200자 이내) | 선택 |
+
+3. **유효성 검증 및 제출:** "추천 받기" 버튼 클릭 시 필수 항목(Q1, Q3) 누락 여부를 검증한다. 오류가 있으면 에러 메시지를 노출하고 제출을 막는다. 통과 시 중복 제출을 방지하고 로딩 오버레이("AI가 최적의 러닝화를 찾고 있어요...")를 띄운다.
+
+4. **데이터 전달:** 입력된 사용자 프로필을 `sessionStorage`에 JSON으로 저장한 뒤 `result.html`로 페이지 이동한다.
+
+5. **결과 확인 (`result.html`):** 사용자 프로필 요약 태그(거리·발볼·쿠션·예산·우선순위)가 상단에 표시되고, 매칭 점수 기준 상위 최대 5개의 러닝화가 카드 형태로 노출된다. 각 카드에는 브랜드·모델명·매칭 점수(%)·추천 이유·주요 스펙 태그·가격·무신사 링크가 포함된다.
+
+6. **TOP 비교:** 매칭 결과가 2개 이상일 경우 "TOP 1 vs TOP 2 비교" 버튼이 활성화되며, 모달 팝업으로 브랜드·쿠션·발볼·무게·통기성·착화감 등을 나란히 비교할 수 있다.
+
+7. **예외 처리:**
+   - 매칭 점수 30점 미만인 결과만 존재할 경우: "맞는 추천이 없습니다" empty-state UI와 조건 재조정 힌트를 제공한다.
+   - 상품 데이터 로드 실패 시: 에러 메시지와 "다시 시도" 버튼을 표시한다.
+   - `sessionStorage`에 프로필이 없을 경우: `index.html`로 자동 리다이렉트한다.
 
 ---
 git add docs/SPEC.md
@@ -26,8 +47,76 @@ git add docs/SPEC.md
 ### 3. 기능 요구사항 (Functional Requirements)
 
 #### 3.1. 사용자 입력 폼 (프론트엔드)
-* **Progressive Disclosure (점진적 공개):** 한 화면에 모든 질문을 쏟아내지 않고, 1~2개씩 스텝별로 나누어 보여주어 입력 피로도를 낮춘다. (PREMORTEM C1 리스크 대응)
-* **입력값 검증 (Validation):** 필수 값 누락 시 다음 스텝으로 넘어가지 못하게 막고, 붉은색 테두리와 직관적인 에러 메시지를 띄운다.
+
+**입력 항목 상세 (Q1~Q7)**
+
+| 질문 | name 속성 | 입력 타입 | 선택지 | 필수 | 기본값 |
+|------|-----------|-----------|--------|------|--------|
+| Q1. 달리는 거리 | `distance` | radio | short(5km↓) / medium(5~10km) / long(10~21km) / marathon(21km↑) | ✅ | 없음 |
+| Q2. 러닝 빈도 | `frequency` | radio | casual(주1~2회) / regular(주3~4회) / intensive(주5회↑) | - | regular |
+| Q3. 발볼 너비 | `width` | radio | wide(넓음) / normal(보통) / narrow(좁음) | ✅ | 없음 |
+| Q4. 선호 쿠션감 | `cushion-slider` | range(1~5) | 1(매우 딱딱) ~ 5(매우 물렁) | - | 3(중간) |
+| Q5. 중요 요소 | `priorities` | checkbox | speed / protection / comfort / breathability / design | - | 없음 |
+| Q6. 예산 범위 | `budget` | radio | low(~7만) / mid(7~12만) / high(12~20만) / premium(20만↑) / 상관없음 | - | 상관없음 |
+| Q7. 자유 서술 | `free-text` | textarea | 최대 200자 자유 입력 | - | 없음 |
+
+**UI 인터랙션 규칙**
+
+* **단일 페이지 스크롤:** Progressive Disclosure 방식이 아닌 7개 질문을 한 페이지에서 세로 스크롤로 노출한다. (PREMORTEM C1 대응 — 필수 항목을 Q1·Q3 두 개로 최소화하여 이탈률 억제)
+* **카드 선택 피드백:** 라디오/체크박스 선택 시 해당 카드에 `selected` 클래스가 즉시 적용되어 시각적 선택 상태를 표시한다.
+* **Q5 최대 3개 제한:** 체크박스 4번째 선택 시 마지막 항목이 자동 해제되고 토스트 경고("중요 요소는 최대 3개까지 선택 가능합니다.")가 2초 표시된다.
+* **Q4 실시간 레이블:** 슬라이더 조작 시 값에 대응하는 한국어 레이블(매우 딱딱 / 약간 딱딱 / 중간 / 약간 물렁 / 매우 물렁)을 즉시 갱신한다.
+* **Q7 글자수 카운팅:** 입력 중 실시간으로 `현재 글자수 / 200` 표시.
+
+**반응형 레이아웃 (Responsive Design)**
+
+모바일 퍼스트(Mobile-First) 원칙으로 설계하며, 3단계 브레이크포인트로 대응한다.
+
+| 브레이크포인트 | 대상 기기 | 주요 레이아웃 변경 |
+|---|---|---|
+| `> 600px` (기본) | 태블릿·데스크탑 | 컨테이너 `max-width: 720px` 중앙 정렬, 그리드 최대 5열 |
+| `≤ 600px` | 일반 스마트폰 | grid-4·grid-5 → 2열, 컨테이너 패딩 축소 |
+| `≤ 480px` | 소형 스마트폰 | grid-3 → 2열, 헤더·질문카드 폰트 축소, 결과카드 세로 정렬, 액션버튼 전체폭 |
+| `≤ 375px` | 초소형(iPhone SE 등) | 모든 그리드 2열 고정, 옵션 버튼 패딩 최소화 |
+
+세부 규칙:
+* **선택지 그리드:** 화면 너비에 따라 열 수를 자동 조정하여 터치 타겟이 최소 48px 이상 확보되도록 한다.
+* **결과 카드:** `≤ 480px`에서 가로(flex-row) → 세로(flex-column) 레이아웃으로 전환하여 브랜드·모델명·매칭점수·추천 이유가 잘 보이도록 한다.
+* **비교 모달 테이블:** `≤ 480px`에서 셀 패딩과 폰트를 줄이고, 속성 열 너비를 축소하여 모달 내 가로 스크롤 없이 표시한다.
+* **액션 버튼:** `≤ 480px`에서 세로 배열 + 전체폭(100%)으로 전환하여 터치 조작 편의성을 높인다.
+
+**유효성 검증 (Validation)**
+
+* 제출 버튼 클릭 시 아래 규칙을 순서대로 검사한다:
+
+  | 조건 | 에러 메시지 |
+  |------|-------------|
+  | Q1 미선택 | "Q1 '달리는 거리'를 선택해 주세요." |
+  | Q3 미선택 | "Q3 '발볼 유형'을 선택해 주세요." |
+  | Q5 4개 이상 선택 | "Q5 '중요 요소'는 최대 3개까지 선택 가능합니다." |
+  | Q7 200자 초과 | "Q7 추가 내용은 200자 이내로 입력해 주세요." |
+
+* 에러가 하나라도 있으면 제출을 막고, 에러 영역(`#errors`)을 노출한 뒤 해당 영역으로 부드럽게 스크롤한다.
+* 중복 제출 방지: 제출 후 버튼을 `disabled` 처리하고 텍스트를 "진단 중.."으로 변경한다.
+
+**로딩 상태**
+
+* 유효성 통과 시 전체 화면 로딩 오버레이(`#loading-overlay`)가 표시되고 "AI가 최적의 러닝화를 찾고 있어요..." 문구가 노출된다.
+* 사용자 프로필 JSON을 `sessionStorage`에 저장 후 800ms 뒤 `result.html`로 이동한다.
+
+**수집되는 사용자 프로필 JSON 구조**
+
+```json
+{
+  "running_distance": "medium",
+  "frequency": "regular",
+  "foot_width": "wide",
+  "preferred_cushion": 3,
+  "priorities": ["protection", "comfort"],
+  "budget": "high",
+  "free_text": "평발이에요"
+}
+```
 
 #### 3.2. 추천 엔진 및 LLM 연동 (백엔드)
 * **데이터 필터링 (1차):** 사용자가 입력한 조건(예산, 발볼, 내전 여부)을 바탕으로 Google Sheets(DB)에서 조건에 맞지 않는 신발을 1차로 필터링한다. (환각 방지 및 AI 토큰 절약)
@@ -122,57 +211,67 @@ MVP 단계의 속도와 유지보수성을 고려하여, 복잡한 인프라 대
 
 Google Sheets를 DB로 사용하므로, 각 탭(Sheet)을 하나의 Table로 간주하여 평면화(Denormalization)된 구조를 가져갑니다.
 
-#### Sheet 1: `Shoes` (러닝화 메타 데이터 - 기준 정보)
-
-| Column Name | Type | Description | Example |
-|---|---|---|---|
-| id | String | 고유 식별자 (Brand_Model) | ASICS_KAYANO30 |
-| brand | String | 브랜드명 | Asics |
-| model | String | 모델명 | Gel-Kayano 30 |
-| type | String | 러닝화 타입 (안정화, 쿠션화, 레이싱 등) | Stability |
-| pronation | String | 적합 발 타입 (내전, 외전, 중립) | Overpronation |
-| price | Number | 정가 | 189000 |
-| review_summary | String | 수집된 리뷰들의 긍/부정 핵심 요약 | "발볼이 넓어 편하지만, 무게가 다소 무거움" |
-
-#### Sheet 2: `Logs` (사용자 이용 이력 및 피드백)
-
-| Column Name | Type | Description | Example |
-|---|---|---|---|
-| log_id | UUID | 이력 고유 ID | 123e4567-e89b... |
-| timestamp | DateTime | 조회 일시 | 2026-03-15 14:00:00 |
-| user_input | JSON | 사용자가 입력한 조건 전체 | {"foot_type":"overpronation", ...} |
-| recommended_shoes | String | 추천된 신발 ID 목록 | ASICS_KAYANO30, BROOKS_ADRENALINE23 |
-
-#### ERD (Entity Relationship Diagram)
-
-##### 관계 정의
+#### ERD — 관계 정의
 
 | 엔티티 | 관계 | 엔티티 | 설명 |
 |---|---|---|---|
 | `Logs` | 1 : N (논리적 참조) | `Shoes` | 하나의 로그에 여러 추천 신발 포함 가능 |
 
-> Google Sheets 환경이므로 물리적 FK 제약조건은 없으나, 애플리케이션 레벨에서 논리적 조인을 수행함
+> Google Sheets 환경이므로 물리적 FK 제약조건은 없으나, 애플리케이션 레벨에서 `goods_no` 기준으로 논리적 조인을 수행함
 
-##### Shoes 엔티티
+---
 
-| Column Name | Type | Key | Description | Example |
-|---|---|---|---|---|
-| id | String | PK | 고유 식별자 (Brand_Model) | ASICS_KAYANO30 |
-| brand | String | | 브랜드명 | Asics |
-| model | String | | 모델명 | Gel-Kayano 30 |
-| type | String | | 러닝화 타입 (안정화, 쿠션화, 레이싱 등) | Stability |
-| pronation | String | | 적합 발 타입 (내전, 외전, 중립) | Overpronation |
-| price | Number | | 정가 | 189000 |
-| review_summary | String | | 수집된 리뷰들의 긍/부정 핵심 요약 | "발볼이 넓어 편하지만, 무게가 다소 무거움" |
+#### Sheet 1: `Shoes` (러닝화 메타 데이터)
 
-##### Logs 엔티티
+| Column Name | Type | Key | 허용값 | Description | Example |
+|---|---|---|---|---|---|
+| goods_no | String | PK | 무신사 상품번호 | 고유 식별자 | `5005842` |
+| goods_name | String | | | 모델명 | `맥시마이저 26` |
+| brand | String | | | 브랜드명 | `미즈노` |
+| price | Number | | 정수 | 판매가 (원) | `59000` |
+| url | String | | URL | 무신사 상품 링크 | `https://www.musinsa.com/products/5005842` |
+| thumbnail | String | | URL | 상품 썸네일 이미지 URL | `` |
+| width | String | | `넓음` / `보통` / `좁음` | 발볼 너비 | `보통` |
+| cushion | Number | | 1~5 정수 | 쿠션감 (1=딱딱, 5=물렁) | `4` |
+| weight | Number | | 1~5 정수 | 무게감 (1=가벼움, 5=무거움) | `2` |
+| distance | String | | `단거리` / `중거리` / `장거리` / `전거리` | 적합 러닝 거리 | `중거리` |
+| breathability | Number | | 1~5 정수 | 통기성 | `4` |
+| fit | Number | | 1~5 정수 | 착화감 | `5` |
+| summary | String | | | 리뷰 기반 한줄 요약 | `가성비 좋은 데일리 러닝화, 쿠션감 우수` |
+| review_count_used | Number | | 정수 | 분석에 사용된 리뷰 수 | `20` |
+| confidence | String | | `high` / `medium` / `low` | 데이터 신뢰도 | `high` |
 
-| Column Name | Type | Key | Description | Example |
-|---|---|---|---|---|
-| log_id | UUID | PK | 이력 고유 ID | 123e4567-e89b... |
-| timestamp | DateTime | | 조회 일시 | 2026-03-15 14:00:00 |
-| user_input | JSON | | 사용자가 입력한 조건 전체 | `{"foot_type":"overpronation", ...}` |
-| recommended_shoes | String | | 추천된 신발 ID 목록 | ASICS_KAYANO30, BROOKS_ADRENALINE23 |
+##### Shoes 초기 샘플 데이터 (10개)
+
+| goods_no | goods_name | brand | price | width | cushion | weight | distance | breathability | fit | summary | review_count_used | confidence |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 5005842 | 맥시마이저 26 (오프 화이트) | 미즈노 | 59000 | 보통 | 4 | 2 | 중거리 | 4 | 5 | 가성비 좋은 데일리 러닝화, 쿠션감 우수 | 20 | high |
+| 3990544 | W480SK5 | 뉴발란스 | 75000 | 보통 | 3 | 2 | 단거리 | 4 | 4 | 가벼운 입문용 러닝화 | 20 | high |
+| 4521387 | 페가수스 41 | 나이키 | 159000 | 보통 | 4 | 3 | 전거리 | 4 | 4 | 범용 데일리 트레이너, 안정적 쿠션 | 20 | high |
+| 5123456 | 마파테 스피드 2 | 호카 | 239000 | 넓음 | 5 | 3 | 장거리 | 3 | 5 | 구름 같은 쿠션, 마라톤·장거리 최적 | 18 | high |
+| 4789123 | 엔돌핀 스피드 4 | 사코니 | 199000 | 보통 | 3 | 1 | 중거리 | 5 | 4 | 초경량 반발력 카본 플레이트 | 15 | high |
+| 4456789 | 노바블라스트 4 | 아식스 | 149000 | 넓음 | 5 | 3 | 장거리 | 3 | 4 | 푹신한 쿠션, 장거리 부상 방지 | 20 | high |
+| 4112233 | 젤 카야노 31 | 아식스 | 189000 | 보통 | 4 | 4 | 장거리 | 3 | 5 | 안정성 최고, 평발 러너에게 추천 | 20 | high |
+| 5234567 | 클리프턴 9 | 호카 | 169000 | 넓음 | 5 | 2 | 전거리 | 4 | 5 | 가벼우면서 푹신, 발볼 넓은 분께 | 20 | high |
+| 4998877 | 라이드 17 | 사코니 | 139000 | 좁음 | 3 | 2 | 중거리 | 4 | 3 | 발볼 좁은 분께 적합, 균형형 | 12 | high |
+| 4665544 | 글라이드라이드 3 | 아식스 | 129000 | 보통 | 4 | 4 | 장거리 | 3 | 4 | 에너지 세이빙 장거리 트레이너 | 8 | medium |
+
+---
+
+#### Sheet 2: `Logs` (사용자 이용 이력)
+
+| Column Name | Type | Key | 허용값 | Description | Example |
+|---|---|---|---|---|---|
+| log_id | String | PK | UUID | 이력 고유 ID (자동생성) | `550e8400-e29b-41d4-a716` |
+| timestamp | DateTime | | `YYYY-MM-DD HH:mm:ss` | 조회 일시 | `2026-05-03 14:00:00` |
+| running_distance | String | | `short` / `medium` / `long` / `marathon` | 달리는 거리 | `medium` |
+| frequency | String | | `casual` / `regular` / `intensive` | 러닝 빈도 | `regular` |
+| foot_width | String | | `wide` / `normal` / `narrow` | 발볼 너비 | `normal` |
+| preferred_cushion | Number | | 1~5 정수 | 선호 쿠션감 | `3` |
+| priorities | String | | 콤마 구분 | 중요 요소 | `protection,comfort` |
+| budget | String | | `low` / `mid` / `high` / `premium` | 예산 범위 | `high` |
+| free_text | String | | 최대 200자 | 자유 서술 내용 | `평발이에요` |
+| recommended_goods_no | String | FK→Shoes | 콤마 구분 | 추천된 goods_no 목록 | `4112233,5234567,4456789` |
 
 ---
 

@@ -1,15 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RunFit — 추천 결과</title>
+  <title>RunFit - 추천 결과</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="header">
     <h1>🏃 RunFit</h1>
-    <p class="tagline">AI가 추천한 당신의 러닝화</p>
+    <p class="tagline">AI가 추천하신 러닝화입니다</p>
   </header>
 
   <main class="container">
@@ -27,16 +27,22 @@
   <div id="compare-modal" class="modal" style="display: none;">
     <div class="modal-content">
       <button class="modal-close" onclick="closeModal()">✕</button>
-      <h2>속성 비교</h2>
+      <h2>상세 비교</h2>
       <div id="compare-table"></div>
     </div>
   </div>
 
   <footer class="footer">
-    <p>KAIST 11조 — 김기환·김소현·박영민·이창석·황선정</p>
+    <p>powered by KAIST IMMS 이준호 · 김영권 · 박영민 · 최규민</p>
   </footer>
 
-  <script src="recommend.js"></script>
+  <!-- API 응답 대기 중 로딩 오버레이 -->
+  <div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:999; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+    <div style="width:48px;height:48px;border:5px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+    <p style="color:#fff;font-size:16px;font-weight:600;">AI가 최적의 러닝화를 찾고 있어요...</p>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
   <script src="result.js"></script>
 </body>
 </html>
